@@ -6,10 +6,39 @@ import { Badge } from '@/components/ui/badge';
 import { StudentForm } from '@/components/StudentForm';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { InternshipForm } from '@/components/InternshipForm';
-import { GraduationCap, Settings, Building2, Sparkles, Target, Users, Award } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { GraduationCap, Settings, Building2, Sparkles, Target, Users, Award, LogOut } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('student');
+  const { signOut } = useAuth();
+
+          <div className="flex flex-wrap justify-center gap-4 pt-4">
+            <Button 
+              onClick={() => setActiveTab('student')}
+              variant="ghost"
+              className="bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm"
+            >
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Apply for Internship
+            </Button>
+            <Button 
+              onClick={() => setActiveTab('admin')}
+              variant="ghost"
+              className="bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Admin Dashboard
+            </Button>
+            <Button 
+              onClick={() => signOut()}
+              variant="ghost"
+              className="bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
 
   return (
     <div className="min-h-screen bg-background">

@@ -5,13 +5,24 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { addStudent, type Student } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { GraduationCap, User, MapPin, Briefcase } from 'lucide-react';
+
+interface StudentFormData {
+  name: string;
+  marks: number;
+  skills: string;
+  category: 'GEN' | 'SC' | 'ST' | 'OBC' | 'EWS';
+  location_pref: string;
+  sector_pref: string;
+}
 
 export const StudentForm: React.FC = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<Omit<Student, 'id'>>({
+  const [formData, setFormData] = useState<StudentFormData>({
     name: '',
     marks: 0,
     skills: '',
@@ -26,6 +37,15 @@ export const StudentForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to submit your application",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Basic validation
     if (!formData.name || !formData.skills || !formData.location_pref || !formData.sector_pref) {
@@ -48,7 +68,15 @@ export const StudentForm: React.FC = () => {
 
     setLoading(true);
     try {
-      await addStudent(formData);
+      const { error } = await supabase
+        .from('students')
+        .insert([{
+          ...formData,
+          user_id: user.id
+        }]);
+
+      if (error) throw error;
+
       toast({
         title: "Success!",
         description: "Student application submitted successfully",
@@ -64,10 +92,10 @@ export const StudentForm: React.FC = () => {
         location_pref: '',
         sector_pref: '',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit application",
+        description: error?.message || "Failed to submit application",
         variant: "destructive",
       });
     } finally {
@@ -144,7 +172,7 @@ export const StudentForm: React.FC = () => {
                 <Label htmlFor="category">Category *</Label>
                 <Select 
                   value={formData.category} 
-                  onValueChange={(value) => handleInputChange('category', value as Student['category'])}
+                  onValueChange={(value) => handleInputChange('category', value as StudentFormData['category'])}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />

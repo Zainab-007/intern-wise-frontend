@@ -4,15 +4,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { runAllocation, getStudents, getInternships, type AllocationResult, type Student, type Internship } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Settings, Play, Users, Building2, Target, Trophy } from 'lucide-react';
+
+interface Allocation {
+  id: string;
+  student: {
+    name: string;
+    category: string;
+  };
+  internship: {
+    company: string;
+    role: string;
+    sector: string;
+  };
+  score: number;
+  reason: string;
+}
 
 export const AdminDashboard: React.FC = () => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [allocations, setAllocations] = useState<AllocationResult[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [internships, setInternships] = useState<Internship[]>([]);
+  const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalInternships: 0,
@@ -20,30 +35,64 @@ export const AdminDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (profile?.role === 'admin') {
+      loadData();
+    }
+  }, [profile]);
 
   const loadData = async () => {
     try {
-      const [studentsRes, internshipsRes] = await Promise.all([
-        getStudents(),
-        getInternships(),
+      const [studentsRes, internshipsRes, allocationsRes] = await Promise.all([
+        supabase.from('students').select('id'),
+        supabase.from('internships').select('id'),
+        supabase
+          .from('allocations')
+          .select(`
+            id,
+            score,
+            reason,
+            students!inner(name, category),
+            internships!inner(company, role, sector)
+          `)
       ]);
-      
-      setStudents(studentsRes.data);
-      setInternships(internshipsRes.data);
+
+      const students = studentsRes.data || [];
+      const internships = internshipsRes.data || [];
+      const allocationsData = allocationsRes.data || [];
+
+      const formattedAllocations: Allocation[] = allocationsData.map((alloc: any) => ({
+        id: alloc.id,
+        student: {
+          name: alloc.students.name,
+          category: alloc.students.category
+        },
+        internship: {
+          company: alloc.internships.company,
+          role: alloc.internships.role,
+          sector: alloc.internships.sector
+        },
+        score: alloc.score,
+        reason: alloc.reason
+      }));
+
+      setAllocations(formattedAllocations);
       setStats({
-        totalStudents: studentsRes.data.length,
-        totalInternships: internshipsRes.data.length,
-        totalAllocations: allocations.length,
+        totalStudents: students.length,
+        totalInternships: internships.length,
+        totalAllocations: formattedAllocations.length,
       });
     } catch (error) {
       console.error('Failed to load data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
     }
   };
 
   const handleRunAllocation = async () => {
-    if (students.length === 0) {
+    if (stats.totalStudents === 0) {
       toast({
         title: "No Students Found",
         description: "Please add some students before running allocation",
@@ -52,7 +101,7 @@ export const AdminDashboard: React.FC = () => {
       return;
     }
 
-    if (internships.length === 0) {
+    if (stats.totalInternships === 0) {
       toast({
         title: "No Internships Found",
         description: "Please add some internships before running allocation",
@@ -63,33 +112,21 @@ export const AdminDashboard: React.FC = () => {
 
     setLoading(true);
     try {
-      const result = await runAllocation();
+      const { error } = await supabase.functions.invoke('allocate-internships');
       
-      // Enrich allocation data with student and internship names
-      const enrichedAllocations = result.data.map(allocation => {
-        const student = students.find(s => s.id === allocation.student_id);
-        const internship = internships.find(i => i.id === allocation.internship_id);
-        
-        return {
-          ...allocation,
-          student_name: student?.name || 'Unknown Student',
-          org_name: internship?.org_name || 'Unknown Organization',
-          sector: internship?.sector || 'Unknown Sector',
-        };
-      });
-      
-      setAllocations(enrichedAllocations);
-      setStats(prev => ({ ...prev, totalAllocations: enrichedAllocations.length }));
-      
+      if (error) throw error;
+
       toast({
         title: "Allocation Complete!",
-        description: `Successfully allocated ${enrichedAllocations.length} internships`,
+        description: "Successfully completed internship allocation",
         variant: "default",
       });
-    } catch (error) {
+      
+      await loadData(); // Refresh data
+    } catch (error: any) {
       toast({
         title: "Allocation Failed",
-        description: error instanceof Error ? error.message : "Failed to run allocation",
+        description: error?.message || "Failed to run allocation",
         variant: "destructive",
       });
     } finally {
@@ -98,18 +135,35 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return 'bg-success text-success-foreground';
-    if (score >= 0.6) return 'bg-warning text-warning-foreground';
+    if (score >= 80) return 'bg-success text-success-foreground';
+    if (score >= 60) return 'bg-warning text-warning-foreground';
     return 'bg-muted text-muted-foreground';
   };
 
   const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'quota': return 'bg-primary text-primary-foreground';
-      case 'open': return 'bg-secondary text-secondary-foreground';
+    switch (category.toUpperCase()) {
+      case 'GEN': return 'bg-primary text-primary-foreground';
+      case 'SC': return 'bg-secondary text-secondary-foreground';
+      case 'ST': return 'bg-accent text-accent-foreground';
+      case 'OBC': return 'bg-warning text-warning-foreground';
+      case 'EWS': return 'bg-success text-success-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
   };
+
+  if (profile?.role !== 'admin') {
+    return (
+      <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+        <CardContent className="p-8 text-center">
+          <div className="p-4 rounded-full bg-muted w-fit mx-auto mb-4">
+            <Settings className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Admin Access Required</h3>
+          <p className="text-muted-foreground">You need admin privileges to access this dashboard.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -215,10 +269,10 @@ export const AdminDashboard: React.FC = () => {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Student</TableHead>
-                    <TableHead>Organization</TableHead>
+                    <TableHead>Organization & Role</TableHead>
                     <TableHead>Sector</TableHead>
                     <TableHead>Score</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Reason</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -226,22 +280,22 @@ export const AdminDashboard: React.FC = () => {
                   {allocations.map((allocation, index) => (
                     <TableRow key={index} className="hover:bg-muted/30">
                       <TableCell className="font-medium">
-                        {allocation.student_name}
+                        {allocation.student.name}
                       </TableCell>
-                      <TableCell>{allocation.org_name}</TableCell>
+                      <TableCell>{allocation.internship.company} - {allocation.internship.role}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
-                          {allocation.sector}
+                          {allocation.internship.sector}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={getScoreColor(allocation.score)}>
-                          {(allocation.score * 100).toFixed(1)}%
+                          {allocation.score.toFixed(1)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getCategoryColor(allocation.allocation_type)}>
-                          {allocation.allocation_type}
+                        <Badge className={getCategoryColor(allocation.student.category)}>
+                          {allocation.student.category}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-xs truncate">

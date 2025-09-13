@@ -14,7 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      allocations: {
+        Row: {
+          allocated_at: string
+          id: string
+          internship_id: string | null
+          reason: string | null
+          score: number
+          student_id: string | null
+        }
+        Insert: {
+          allocated_at?: string
+          id?: string
+          internship_id?: string | null
+          reason?: string | null
+          score: number
+          student_id?: string | null
+        }
+        Update: {
+          allocated_at?: string
+          id?: string
+          internship_id?: string | null
+          reason?: string | null
+          score?: number
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocations_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internships: {
+        Row: {
+          company: string
+          created_at: string
+          id: string
+          location: string
+          quota_ews: number
+          quota_gen: number
+          quota_obc: number
+          quota_sc: number
+          quota_st: number
+          required_skills: string
+          role: string
+          sector: string
+          total_positions: number
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          id?: string
+          location: string
+          quota_ews?: number
+          quota_gen?: number
+          quota_obc?: number
+          quota_sc?: number
+          quota_st?: number
+          required_skills: string
+          role: string
+          sector: string
+          total_positions: number
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          id?: string
+          location?: string
+          quota_ews?: number
+          quota_gen?: number
+          quota_obc?: number
+          quota_sc?: number
+          quota_st?: number
+          required_skills?: string
+          role?: string
+          sector?: string
+          total_positions?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          location_pref: string
+          marks: number
+          name: string
+          sector_pref: string
+          skills: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          location_pref: string
+          marks: number
+          name: string
+          sector_pref: string
+          skills: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          location_pref?: string
+          marks?: number
+          name?: string
+          sector_pref?: string
+          skills?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
