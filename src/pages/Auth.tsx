@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { LogIn, UserPlus, GraduationCap } from 'lucide-react';
+import { LogIn, UserPlus, GraduationCap, Shield } from 'lucide-react';
 
 const Auth = () => {
   const { toast } = useToast();
-  const { user, signIn, signUp, loading } = useAuth();
+  const { user, signIn, signUp, signInAsAdmin, loading } = useAuth();
   const [formLoading, setFormLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [adminData, setAdminData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ email: '', password: '', fullName: '', confirmPassword: '' });
 
   // Redirect if already authenticated
@@ -37,6 +38,28 @@ const Auth = () => {
       toast({
         title: "Welcome back!",
         description: "Successfully logged in",
+      });
+    }
+    
+    setFormLoading(false);
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+
+    const { error } = await signInAsAdmin(adminData.email, adminData.password);
+    
+    if (error) {
+      toast({
+        title: "Admin Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Welcome Admin!",
+        description: "Successfully logged in as administrator",
       });
     }
     
@@ -101,9 +124,12 @@ const Auth = () => {
           
           <CardContent>
             <Tabs defaultValue="login" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-3 bg-muted/50">
                 <TabsTrigger value="login" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
                   Sign In
+                </TabsTrigger>
+                <TabsTrigger value="admin" className="data-[state=active]:bg-gradient-secondary data-[state=active]:text-white">
+                  Admin
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="data-[state=active]:bg-gradient-accent data-[state=active]:text-white">
                   Sign Up
@@ -150,6 +176,52 @@ const Auth = () => {
                       <div className="flex items-center gap-2">
                         <LogIn className="h-4 w-4" />
                         Sign In
+                      </div>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="admin" className="space-y-4">
+                <form onSubmit={handleAdminLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminEmail">Admin Email</Label>
+                    <Input
+                      id="adminEmail"
+                      type="email"
+                      value={adminData.email}
+                      onChange={(e) => setAdminData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Enter admin email"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="adminPassword">Admin Password</Label>
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      value={adminData.password}
+                      onChange={(e) => setAdminData(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Enter admin password"
+                      required
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={formLoading}
+                    className="w-full bg-gradient-secondary hover:opacity-90 text-white font-medium h-11"
+                  >
+                    {formLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Signing In as Admin...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin Sign In
                       </div>
                     )}
                   </Button>

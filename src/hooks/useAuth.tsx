@@ -17,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInAsAdmin: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<{ error: any }>;
 }
@@ -99,6 +100,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error };
   };
 
+  const signInAsAdmin = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (!error) {
+      // Check if user has admin role
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+        
+      if (profileData?.role !== 'admin') {
+        await supabase.auth.signOut();
+        return { error: new Error('Access denied. Admin privileges required.') };
+      }
+    }
+    
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -125,6 +149,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loading,
     signUp,
     signIn,
+    signInAsAdmin,
     signOut,
     updateProfile
   };
