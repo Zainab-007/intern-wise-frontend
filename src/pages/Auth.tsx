@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import AdminSetup from '@/components/AdminSetup';
 import { LogIn, UserPlus, GraduationCap, Shield } from 'lucide-react';
 
 const Auth = () => {
@@ -124,14 +125,17 @@ const Auth = () => {
           
           <CardContent>
             <Tabs defaultValue="login" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-                <TabsTrigger value="login" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white">
+              <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+                <TabsTrigger value="login" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-white text-xs">
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger value="admin" className="data-[state=active]:bg-gradient-secondary data-[state=active]:text-white">
+                <TabsTrigger value="admin" className="data-[state=active]:bg-gradient-secondary data-[state=active]:text-white text-xs">
                   Admin
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-gradient-accent data-[state=active]:text-white">
+                <TabsTrigger value="setup" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+                  Setup
+                </TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-gradient-accent data-[state=active]:text-white text-xs">
                   Sign Up
                 </TabsTrigger>
               </TabsList>
@@ -226,6 +230,10 @@ const Auth = () => {
                     )}
                   </Button>
                 </form>
+              </TabsContent>
+
+              <TabsContent value="setup" className="space-y-4">
+                <AdminSetup />
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
